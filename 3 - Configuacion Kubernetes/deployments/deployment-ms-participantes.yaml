@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-participantes
+  namespace: gestion-ep-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ms-participantes
+  template:
+    metadata:
+      labels:
+        app: ms-participantes
+    spec:
+      containers:
+        - name: ms-participantes
+          image: mcabrerac/ms-participantes:1.0
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: kubernetes
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: PARTICIPANTES_DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: PARTICIPANTES_DB_PASSWORD
+            - name: APP_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: ms-participantes-config
+                  key: APP_NAME
+            - name: SERVER_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: ms-participantes-config
+                  key: SERVER_PORT
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: ms-participantes-config
+                  key: DB_URL
+            - name: DB_DRIVER
+              valueFrom:
+                configMapKeyRef:
+                  name: ms-participantes-config
+                  key: DB_DRIVER
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "500m"
+            limits:
+              memory: "800Mi"
+              cpu: "800m"
+
+      restartPolicy: Always
